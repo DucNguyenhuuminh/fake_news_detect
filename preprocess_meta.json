@@ -1,0 +1,9 @@
+{
+  "max_len": 500,
+  "vocab_size_limit": 20000,
+  "actual_vocab_size": 115466,
+  "embedding_dim": 300,
+  "using_glove": false,
+  "rows": 44919,
+  "has_subject": true
+}
