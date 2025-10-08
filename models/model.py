@@ -1,22 +1,21 @@
 import numpy as np
 import pandas as pd
 import pickle
-
+import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 
-import tensorflow as tf
+
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Embedding, Bidirectional, LSTM, Dense, Dropout
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
-from tensorflow.keras.utils import plot_model
 
 # Configuration of file
 
-OUTPUT_CLEAN_CSV = "/data/processed/cleaned_dataset.csv"
-OUTPUT_TOKENIZER = "/data/processed/tokenizer.pkl"
-OUTPUT_EMB_MATRIX = "/data/processed/embedding_matrix.npy"
-OUTPUT_MODEL_H5 = "/data/processed/model.h5"
+OUTPUT_CLEAN_CSV = "../data/processed/cleaned_dataset.csv"
+OUTPUT_TOKENIZER = "../data/processed/tokenizer.pkl"
+OUTPUT_EMB_MATRIX = "../data/processed/embedding_matrix.npy"
+OUTPUT_MODEL_H5 = "best_model.h5"
 
 # Upload clean data
 
@@ -27,9 +26,13 @@ with open(OUTPUT_TOKENIZER,'rb') as f:
     tokenizer = pickle.load(f)
 
 embedding_matrix = np.load(OUTPUT_EMB_MATRIX)
+print(f"Loaded {len(df)} data lines.")
+print(f"Shape of Embedding matrix: {embedding_matrix.shape}")
+
 vocal_size = embedding_matrix.shape[0]
 embed_dim = embedding_matrix.shape[1]
 seqs = tokenizer.texts_to_sequences(df['clean_join'])
+max_len = max(len(s) for s in seqs)
 
 # Define the suitable length string
 p95 = int(np.percentile([len(s) for s in seqs], 95))
@@ -67,5 +70,8 @@ model = Model(inputs,outputs,name="FakeNews_BiLSTM")
 # Compile
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
-
+    loss='binary_crossentropy',
+    metrics=['accuracy',tf.keras.metrics.AUC(name="auc")]
 )
+
+model.summary()
