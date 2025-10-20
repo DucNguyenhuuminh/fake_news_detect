@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import pickle
 import tensorflow as tf
+import os
+
 from sklearn.preprocessing import LabelEncoder
 
 
@@ -11,12 +13,15 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 # Configuration of file
+model_dir = os.path.dirname(__file__)
+# Lấy đường dẫn thư mục gốc của dự án (đi lên 1 cấp từ model_dir)
+project_root = os.path.abspath(os.path.join(model_dir, '..'))
 
-OUTPUT_CLEAN_CSV = "../data/processed/cleaned_dataset.csv"
-OUTPUT_TOKENIZER = "../data/processed/tokenizer.pkl"
-OUTPUT_EMB_MATRIX = "../data/processed/embedding_matrix.npy"
+# Tạo đường dẫn tuyệt đối đến các file dữ liệu
+OUTPUT_CLEAN_CSV = os.path.join(project_root, "data/processed/cleaned_dataset.csv")
+OUTPUT_TOKENIZER = os.path.join(project_root, "data/processed/tokenizer.pkl")
+OUTPUT_EMB_MATRIX = os.path.join(project_root, "data/processed/embedding_matrix.npy")
 OUTPUT_MODEL_H5 = "best_model.h5"
-
 # Upload clean data
 
 df = pd.read_csv(OUTPUT_CLEAN_CSV)
