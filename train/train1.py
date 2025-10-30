@@ -69,6 +69,12 @@ labels_mapped = labels_raw[mask_valid].map(map_dict).astype("int32")
 # Update X and y according to the valid mask (must filter X for valid rows too)
 X = X[mask_valid.values]
 y = labels_mapped.values
+# Kiểm tra phân bố nhãn
+print("\n=== LABEL DISTRIBUTION ===")
+print(f"Total samples: {len(y)}")
+print(f"Fake (0): {(y==0).sum()} ({(y==0).sum()/len(y)*100:.1f}%)")
+print(f"Real (1): {(y==1).sum()} ({(y==1).sum()/len(y)*100:.1f}%)")
+print("========================\n") 
 
 print("Label distribution:", pd.Series(y).value_counts().to_dict()) 
 

@@ -44,12 +44,22 @@ def clean_text(text):
 # ======================
 def predict_news(text):
     cleaned = clean_text(text)
+    print(f"Cleaned text: {cleaned[:200]}")  # In 200 ký tự đầu
+    
+    seq = tokenizer.texts_to_sequences([cleaned])
+    print(f"Sequence: {seq[0][:50]}")  # In 50 số đầu
+    print(f"Sequence length: {len(seq[0])}")
+    
     seq = tokenizer.texts_to_sequences([cleaned])
     padded = pad_sequences(seq, maxlen=MAX_LEN, padding="post", truncating="post")
     pred = model.predict(padded, verbose=0)[0][0]
+    
+    # In ra terminal
+    print(f"DEBUG - Raw prediction: {pred}")
+    
     label = "Real News" if pred >= 0.5 else "Fake News"
     confidence = pred if pred >= 0.5 else 1 - pred
-    return label, confidence
+    return label, confidence, pred  # Thêm pred vào return
 
 # ======================
 # Streamlit UI
@@ -64,7 +74,7 @@ if st.button("Analyze"):
     if user_input.strip() == "":
         st.warning("Please enter some text before analyzing.")
     else:
-        label, confidence = predict_news(user_input)
+        label, confidence, raw_pred = predict_news(user_input)
 
         st.markdown("---")
         st.subheader("Prediction Result")
