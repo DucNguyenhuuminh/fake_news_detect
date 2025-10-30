@@ -1,6 +1,6 @@
 {
   "max_len": 500,
-  "vocab_size_limit": 20000,
+  "vocab_size_limit": 50000,
   "actual_vocab_size": 115466,
   "embedding_dim": 300,
   "using_glove": false,
