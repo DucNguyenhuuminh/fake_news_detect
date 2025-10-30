@@ -20,7 +20,7 @@ st.set_page_config(
 # ======================
 @st.cache_resource
 def load_model_and_tokenizer():
-    model = tf.keras.models.load_model("models/model_best.h5", compile=False)
+    model = tf.keras.models.load_model("models/model_best_CNN.h5", compile=False)
     with open("data/processed/tokenizer.pkl", "rb") as f:
         tokenizer = pickle.load(f)
     with open("data/processed/preprocess_meta.json", "r") as f:
@@ -57,7 +57,7 @@ def predict_news(text):
     # In ra terminal
     print(f"DEBUG - Raw prediction: {pred}")
     
-    label = "Real News" if pred >= 0.5 else "Fake News"
+    label = "Real News" if pred >= 0.45 else "Fake News"
     confidence = pred if pred >= 0.5 else 1 - pred
     return label, confidence, pred  # Thêm pred vào return
 
