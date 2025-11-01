@@ -13,7 +13,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 try:
-    from models.model import model # Import the 'model' variable directly
+    from models.model import model # Impor t the 'model' variable directly
     print("Model loaded successfully from 'models/model.py'.")
 except ImportError:
     print("ERROR: Could not import 'model' from 'models/model.py'.")

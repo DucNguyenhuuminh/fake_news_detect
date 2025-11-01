@@ -1,84 +1,124 @@
+import os
+import pickle
 import numpy as np
 import pandas as pd
-import pickle
 import tensorflow as tf
-import os
-from sklearn.preprocessing import LabelEncoder
+
 from tensorflow.keras.models import Model
-# Thêm Conv1D, GlobalMaxPooling1D, Concatenate
-from tensorflow.keras.layers import Input, Embedding, Dense, Dropout, Conv1D, GlobalMaxPooling1D, Concatenate
+from tensorflow.keras.layers import (
+    Input,
+    Embedding,
+    Conv1D,
+    GlobalMaxPooling1D,
+    Concatenate,
+    Dropout,
+    Dense,
+)
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+# Current file directory
+CURRENT_DIR = os.path.dirname(__file__)
+# Go to project root (one level up)
+PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-# --- Configuration of file ---
-model_dir = os.path.dirname(__file__)
-project_root = os.path.abspath(os.path.join(model_dir, '..'))
+# Data paths
+CLEAN_CSV_PATH = os.path.join(PROJECT_ROOT, "data/processed/cleaned_dataset.csv")
+TOKENIZER_PATH = os.path.join(PROJECT_ROOT, "data/processed/tokenizer.pkl")
+EMB_MATRIX_PATH = os.path.join(PROJECT_ROOT, "data/processed/embedding_matrix.npy")
 
-OUTPUT_CLEAN_CSV = os.path.join(project_root, "data/processed/cleaned_dataset.csv")
-OUTPUT_TOKENIZER = os.path.join(project_root, "data/processed/tokenizer.pkl")
-OUTPUT_EMB_MATRIX = os.path.join(project_root, "data/processed/embedding_matrix.npy")
-# --- Hết phần đường dẫn ---
+# Model output
+OUTPUT_MODEL_PATH = os.path.join(PROJECT_ROOT, "models", "model_best_CNN.h5")
 
-# --- Tải dữ liệu ---
-print("Loading data inside model.py...")
-df = pd.read_csv(OUTPUT_CLEAN_CSV)
-df = df.dropna(subset=['clean_join','label']).reset_index(drop=True)
 
-with open(OUTPUT_TOKENIZER,'rb') as f:
+# LOAD DATA & TOKENIZER
+print("[INFO] Loading cleaned dataset...")
+df = pd.read_csv(CLEAN_CSV_PATH)
+# Keep only rows that actually have text and label
+df = df.dropna(subset=["clean_join", "label"]).reset_index(drop=True)
+print(f"[INFO] Loaded {len(df)} samples.")
+
+print("[INFO] Loading tokenizer...")
+with open(TOKENIZER_PATH, "rb") as f:
     tokenizer = pickle.load(f)
 
-embedding_matrix = np.load(OUTPUT_EMB_MATRIX)
-print(f"Loaded {len(df)} data lines.")
-print(f"Shape of Embedding matrix: {embedding_matrix.shape}")
+print("[INFO] Loading embedding matrix...")
+embedding_matrix = np.load(EMB_MATRIX_PATH).astype("float32")
+print(f"[INFO] Embedding shape: {embedding_matrix.shape}")
 
-vocal_size = embedding_matrix.shape[0]
+# SEQUENCE PREPARATION
+# Convert text to sequences
+seqs = tokenizer.texts_to_sequences(df["clean_join"].tolist())
+
+# Decide max_len using 95th percentile (to avoid super-long outliers)
+lengths = [len(s) for s in seqs]
+p95 = int(np.percentile(lengths, 95))
+max_len = min(p95, 500)  # hard cap at 500 tokens
+
+print(f"[INFO] Max sequence length (p95): {max_len}")
+
+
+
+# BUILD CNN MODEL
+
+# NOTE:
+# - We use a multi-kernel CNN (3, 4, 5) to capture local n-gram patterns.
+# - We use pre-trained embedding (GloVe) loaded from embedding_matrix
+# - We freeze embedding (trainable=False) to keep it stable for students
+
+vocab_size = embedding_matrix.shape[0]
 embed_dim = embedding_matrix.shape[1]
-seqs = tokenizer.texts_to_sequences(df['clean_join'])
-# max_len = max(len(s) for s in seqs) # (Bị ghi đè bên dưới)
 
-# Define the suitable length string
-p95 = int(np.percentile([len(s) for s in seqs], 95))
-max_len = min(p95, 500)
-# --- Hết phần tải dữ liệu ---
+inputs = Input(shape=(max_len,), dtype="int32", name="Input_Tokens")
 
-
-# === THAY THẾ KIẾN TRÚC MÔ HÌNH ===
-print("Building TextCNN model...")
-
-# Build-in model TextCNN
-inputs = Input(shape=(max_len,),dtype='int32',name="Input_Layer")
-
-# Embedding layer using GloVe
+# --- Embedding layer ---
 embedding_layer = Embedding(
-    input_dim=vocal_size,
+    input_dim=vocab_size,
     output_dim=embed_dim,
     weights=[embedding_matrix],
     input_length=max_len,
-    trainable=False, # Bắt đầu với False là tốt nhất
-    name="GloVe_Embedding"
+    trainable=False,
+    name="GloVe_Embedding",
 )(inputs)
 
-# CNN với nhiều kernel size
+# --- Parallel Conv1D blocks with different kernel sizes ---
 conv_blocks = []
-for kernel_size in [3, 4, 5]: # Phát hiện cụm 3, 4, 5 từ
-    conv = Conv1D(128, kernel_size, activation='relu', name=f"Conv1D_{kernel_size}")(embedding_layer)
-    pool = GlobalMaxPooling1D(name=f"MaxPool_{kernel_size}")(conv)
-    conv_blocks.append(pool)
+for kernel_size in [3, 4, 5]:  # capture tri-gram, 4-gram, 5-gram patterns
+    conv = Conv1D(
+        filters=128,
+        kernel_size=kernel_size,
+        activation="relu",
+        name=f"Conv1D_{kernel_size}",
+    )(embedding_layer)
+    pooled = GlobalMaxPooling1D(name=f"GlobalMaxPool_{kernel_size}")(conv)
+    conv_blocks.append(pooled)
 
-x = Concatenate(name="Concat_Layer")(conv_blocks) # Kết hợp đặc trưng
-x = Dropout(0.5, name="Dropout_1")(x)
-x = Dense(64, activation='relu', name="Dense_1")(x) # Lớp Dense ẩn
-x = Dropout(0.3, name="Dropout_2")(x) # Thêm Dropout (tùy chọn)
-outputs = Dense(1, activation='sigmoid', name="Output_Layer")(x) # Lớp Output
+# Concatenate all feature maps
+if len(conv_blocks) > 1:
+    x = Concatenate(name="Concat_CNN_Features")(conv_blocks)
+else:
+    x = conv_blocks[0]
 
-model = Model(inputs, outputs, name="FakeNews_CNN") # Đổi tên mô hình
-# === HẾT PHẦN THAY THẾ ===
+# --- Regularization ---
+x = Dropout(0.5, name="Dropout")(x)
 
-# Compile (giữ nguyên)
+# --- Dense projection ---
+x = Dense(16, activation="relu", name="Dense_16")(x)
+
+# --- Output layer ---
+outputs = Dense(1, activation="sigmoid", name="Output")(x)
+
+# --- Build model ---
+model = Model(inputs=inputs, outputs=outputs, name="FakeNews_CNN_MultiKernel")
+
+
+# 5. COMPILE MODEL
+
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
-    loss='binary_crossentropy',
-    metrics=['accuracy',tf.keras.metrics.AUC(name="auc")]
+    loss="binary_crossentropy",
+    metrics=["accuracy", tf.keras.metrics.AUC(name="auc")],
 )
 
+print("[INFO] CNN model summary:")
 model.summary()
+
