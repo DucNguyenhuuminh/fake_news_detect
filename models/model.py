@@ -1,19 +1,14 @@
-# File: models/model.py
 import numpy as np
 import pandas as pd
 import pickle
 import tensorflow as tf
 import os
-
 from sklearn.preprocessing import LabelEncoder
-
-# === CẬP NHẬT IMPORT ===
 from tensorflow.keras.models import Model
 # Thêm Conv1D, GlobalMaxPooling1D, Concatenate
 from tensorflow.keras.layers import Input, Embedding, Dense, Dropout, Conv1D, GlobalMaxPooling1D, Concatenate
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-# (Không cần Bidirectional, LSTM nữa)
-# === HẾT CẬP NHẬT IMPORT ===
+
 
 # --- Configuration of file ---
 model_dir = os.path.dirname(__file__)
@@ -24,7 +19,7 @@ OUTPUT_TOKENIZER = os.path.join(project_root, "data/processed/tokenizer.pkl")
 OUTPUT_EMB_MATRIX = os.path.join(project_root, "data/processed/embedding_matrix.npy")
 # --- Hết phần đường dẫn ---
 
-# --- Tải dữ liệu (giữ nguyên) ---
+# --- Tải dữ liệu ---
 print("Loading data inside model.py...")
 df = pd.read_csv(OUTPUT_CLEAN_CSV)
 df = df.dropna(subset=['clean_join','label']).reset_index(drop=True)
@@ -63,7 +58,7 @@ embedding_layer = Embedding(
     name="GloVe_Embedding"
 )(inputs)
 
-# CNN với nhiều kernel size (Theo code bạn cung cấp)
+# CNN với nhiều kernel size
 conv_blocks = []
 for kernel_size in [3, 4, 5]: # Phát hiện cụm 3, 4, 5 từ
     conv = Conv1D(128, kernel_size, activation='relu', name=f"Conv1D_{kernel_size}")(embedding_layer)

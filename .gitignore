@@ -3,7 +3,7 @@ models/accuracy.png
 models/training_curves.png
 models/training_log.csv
 models/model_best.h5
-
+models/model_best_CNN.h5
 # Python cache
 __pycache__/
 *.pyc

@@ -50,16 +50,21 @@ def predict_news(text):
     print(f"Sequence: {seq[0][:50]}")  # In 50 số đầu
     print(f"Sequence length: {len(seq[0])}")
     
-    seq = tokenizer.texts_to_sequences([cleaned])
     padded = pad_sequences(seq, maxlen=MAX_LEN, padding="post", truncating="post")
     pred = model.predict(padded, verbose=0)[0][0]
     
-    # In ra terminal
     print(f"DEBUG - Raw prediction: {pred}")
     
-    label = "Real News" if pred >= 0.45 else "Fake News"
-    confidence = pred if pred >= 0.5 else 1 - pred
-    return label, confidence, pred  # Thêm pred vào return
+    THRESHOLD = 0.45  # Có thể thay đổi: 0.40, 0.45, 0.48
+    
+    if pred >= THRESHOLD:
+        label = "Real News"
+        confidence = pred
+    else:
+        label = "Fake News"
+        confidence = 1 - pred
+    
+    return label, confidence, pred
 
 # ======================
 # Streamlit UI
