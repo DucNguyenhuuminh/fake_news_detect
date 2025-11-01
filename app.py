@@ -50,7 +50,6 @@ def predict_news(text):
     print(f"Sequence: {seq[0][:50]}")  # In 50 số đầu
     print(f"Sequence length: {len(seq[0])}")
     
-    seq = tokenizer.texts_to_sequences([cleaned])
     padded = pad_sequences(seq, maxlen=MAX_LEN, padding="post", truncating="post")
     pred = model.predict(padded, verbose=0)[0][0]
     
@@ -59,22 +58,41 @@ def predict_news(text):
     
     label = "Real News" if pred >= 0.45 else "Fake News"
     confidence = pred if pred >= 0.5 else 1 - pred
-    return label, confidence, pred  # Thêm pred vào return
+    return label, confidence, pred  
 
-# ======================
 # Streamlit UI
-# ======================
 st.title("📰 Fake News Detection Application")
 st.markdown("Enter a piece of news text below to analyze whether it is real or fake.")
 st.markdown("---")
 
-user_input = st.text_area("Input text:", height=200, placeholder="Paste your news article here...")
 
-if st.button("Analyze"):
-    if user_input.strip() == "":
+user_input = st.text_area(
+    "Input text:",
+    height=200,
+    placeholder="Paste your news article here...",
+    key="user_input"
+)
+
+# Clear callback 
+def clear_input():
+    st.session_state["user_input"] = ""
+
+
+col_a, col_b = st.columns([1, 1])
+
+with col_a:
+    analyze_clicked = st.button("Analyze", use_container_width=True)
+
+with col_b:
+    clear_clicked = st.button("Clear", on_click=clear_input, use_container_width=True)
+
+# Analyze logic
+if analyze_clicked:
+    current_text = st.session_state.get("user_input", "")
+    if current_text.strip() == "":
         st.warning("Please enter some text before analyzing.")
     else:
-        label, confidence, raw_pred = predict_news(user_input)
+        label, confidence, raw_pred = predict_news(current_text)
 
         st.markdown("---")
         st.subheader("Prediction Result")
