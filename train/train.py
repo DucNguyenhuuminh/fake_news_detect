@@ -14,16 +14,12 @@ from tensorflow.keras.callbacks import (
     ReduceLROnPlateau,
     CSVLogger,
 )
-
-# =========================================================
-# 1. PROJECT ROOT
-# =========================================================
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 try:
-    from models.model import build_model   # ✅ đổi dòng này
+    from models.model import build_model  
     print("Model builder loaded successfully from 'models/model.py'.")
 except ImportError:
     print("ERROR: Could not import 'build_model' from 'models/model.py'.")
@@ -32,9 +28,7 @@ except Exception as e:
     print(f"An unexpected error occurred during import: {e}")
     sys.exit(1)
 
-# =========================================================
-# 2. LOAD DATA
-# =========================================================
+#Load Data
 print("Starting data loading and preparation...")
 
 DATA_CSV = "data/processed/cleaned_dataset.csv"
@@ -123,14 +117,9 @@ print(
 )
 print("Data loading complete.")
 
-# =========================================================
-# 🟣 SỬA 2: BUILD MODEL Ở ĐÂY với đúng max_len
-# =========================================================
 model = build_model(embedding_matrix=embedding_matrix, max_len=max_len)
 
-# =========================================================
-# 3. TRAIN
-# =========================================================
+#Train
 print("\nStarting model training process...")
 
 best_path = f"{OUT_DIR}/model_best.h5"
@@ -173,9 +162,7 @@ history = model.fit(
 
 print("Training complete.")
 
-# =========================================================
-# 4. EVAL
-# =========================================================
+#Evaluation
 test_loss, test_acc, test_auc = model.evaluate(
     X_test,
     y_test,
@@ -186,9 +173,7 @@ print("\n--- RESULTS ON TEST SET ---")
 print(f"TEST | loss={test_loss:.4f} acc={test_acc:.4f} auc={test_auc:.4f}")
 print(f"Best model saved at: {best_path}")
 
-# =========================================================
-# 5. PLOT
-# =========================================================
+#Plot
 print("\nPlotting and saving training graphs...")
 
 loss_png = f"{OUT_DIR}/training_curves.png"
